@@ -8,5 +8,12 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@chainlink/contracts": "^0.5.1",
+    "@chainlink/contracts-ccip": "^0.0.0",
+    "@chainlink/env-enc": "^1.0.5",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "ethers": "^6.8.1"
+  }
 }
