@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import {SourceMinter} from "./SourceMinter.sol";
 
 
 /**
@@ -18,6 +19,8 @@ contract AstroSuitPartsNFT is ERC1155URIStorage, Ownable {
     uint256 public constant SHOES = 3;
 
     uint256 private immutable i_maxTokenSupply;
+    SourceMinter private immutable sourceMinter;
+    
 
     uint256[] allIds = [GLOVES, HELMET, SUIT, SHOES];
     uint256[] amounts = [1,1,1,1];
@@ -25,8 +28,9 @@ contract AstroSuitPartsNFT is ERC1155URIStorage, Ownable {
     string constant TOKEN_URI = "https://ipfs.io/ipfs/QmYuKY45Aq87LeL1R5dhb1hqHLp6ZFbJaCP8jxqKM1MX6y/babe_ruth_1.json";
     // uint256 internal tokenId;
 
-    constructor(address _initOwner, uint256 _maxTokenSupply) ERC1155(TOKEN_URI) Ownable(_initOwner) {
+    constructor(address _initOwner, address payable _sourceMinterAddress, uint256 _maxTokenSupply) ERC1155(TOKEN_URI) Ownable(_initOwner) {
         i_maxTokenSupply = _maxTokenSupply;
+        sourceMinter = SourceMinter(_sourceMinterAddress);
     }
 
     function mintGloves(address _to) public {
