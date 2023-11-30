@@ -12,48 +12,22 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  */
 contract AstroSuitFullNFT is ERC721URIStorage, Ownable {
 
-    // uint256 public constant GLOVES = 0;
-    // uint256 public constant HELMET = 1;
-    // uint256 public constant SUIT = 2;
-    // uint256 public constant SHOES = 3;
+    event FullSuitMinted(address _to, uint256 _tokenId);
 
-    // uint256 private immutable i_maxTokenSupply;
+    string constant TOKEN_URI = "https://ipfs.io/ipfs/QmYuKY45Aq87LeL1R5dhb1hqHLp6ZFbJaCP8jxqKM1MX6y/babe_ruth_1.json";
+    uint256 internal tokenId;
 
-    // uint256[] allIds = [GLOVES, HELMET, SUIT, SHOES];
-    // uint256[] amounts = [1,1,1,1];
+    constructor(address _initOwner, uint256 _maxTokenSupply) Ownable(_initOwner) ERC721("AstroSuit Full", "ASF") 
+    {
 
-    // string constant TOKEN_URI = "https://ipfs.io/ipfs/QmYuKY45Aq87LeL1R5dhb1hqHLp6ZFbJaCP8jxqKM1MX6y/babe_ruth_1.json";
-    // // uint256 internal tokenId;
-
-    constructor(address _initOwner, uint256 _maxTokenSupply) Ownable(_initOwner) ERC721("AstroSuit Full", "ASF") {
     }
 
-    // function mintGloves(address _to) public {
-    //     _mint(_to, GLOVES, 1, "");
-    // }
-
-    // function mintHelmet(address _to) public {
-    //     _mint(_to, HELMET, 1, "");
-    // }
-
-    // function mintSuit(address _to) public {
-    //     _mint(_to, SUIT, 1, "");
-    // }
-
-    // function mintShoes(address _to) public {
-    //     _mint(_to, SHOES, 1, "");
-    // }
-
-    // function burnItAll(address _from) public {
-    //     _burnBatch(_from, allIds, amounts);
-    // }
-
-    // // function mint(address to) public onlyOwner {
-    // //     _safeMint(to, tokenId);
-    // //     _setTokenURI(tokenId, TOKEN_URI);
-    // //     tokenId++;
-    // //     // unchecked {
-    // //     //     tokenId++;
-    // //     // }
-    // // }
+    function mint(address _to) public onlyOwner {
+        _safeMint(_to, tokenId);
+        _setTokenURI(tokenId, TOKEN_URI);
+        emit FullSuitMinted(_to, tokenId);
+        unchecked {
+            tokenId++;
+        }
+    }
 }

@@ -19,6 +19,8 @@ contract SourceMinter is Withdraw {
 
     address immutable i_router;
     address immutable i_link;
+    mapping(address => uint256) private nativeDeposits;
+    mapping(address => uint256) private linkDeposits;
 
     event MessageSent(bytes32 messageId);
 
@@ -28,9 +30,39 @@ contract SourceMinter is Withdraw {
         LinkTokenInterface(i_link).approve(i_router, type(uint256).max);
     }
 
-    receive() external payable {}
+    receive() external payable {
+        nativeDeposits[msg.sender] = msg.value;
+    }
 
-    function mint(
+    function checkBalanceForMerge(
+        uint64 destinationChainSelector,
+        address receiver,
+        PayFeesIn payFeesIn
+    ) public view returns (bool) {
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(receiver),
+            data: abi.encodeWithSignature("mint(address)", msg.sender),
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            extraArgs: "",
+            feeToken: payFeesIn == PayFeesIn.LINK ? i_link : address(0)
+        });
+
+        uint256 fee = IRouterClient(i_router).getFee(
+            destinationChainSelector,
+            message
+        );
+
+        if(payFeesIn == PayFeesIn.LINK) {
+            // Needs further logic
+            return false;
+        }
+        else if (payFeesIn == PayFeesIn.Native) {
+            return nativeDeposits[msg.sender] >= fee;
+        }
+        return false;
+    }
+
+    function merge(
         uint64 destinationChainSelector,
         address receiver,
         PayFeesIn payFeesIn
