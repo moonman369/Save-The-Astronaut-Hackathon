@@ -5,6 +5,7 @@ import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interface
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
 import {Withdraw} from "./utils/Withdraw.sol";
+import {AstroSuitPartsNFT} from "./AstroSuitPartsNFT.sol";
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES HARDCODED VALUES FOR CLARITY.
@@ -19,6 +20,7 @@ contract SourceMinter is Withdraw {
 
     address immutable i_router;
     address immutable i_link;
+    address astroPartsNft;
     mapping(address => uint256) private nativeDeposits;
     mapping(address => uint256) private linkDeposits;
 
@@ -30,8 +32,18 @@ contract SourceMinter is Withdraw {
         LinkTokenInterface(i_link).approve(i_router, type(uint256).max);
     }
 
+    function setAstroPartsNft (address _astroPartsNft) public onlyOwner {
+        astroPartsNft = _astroPartsNft;
+    }
+
     receive() external payable {
         nativeDeposits[msg.sender] = msg.value;
+    }
+
+    function receiveLink(uint256 _amount) external {
+        require(LinkTokenInterface(i_link).balanceOf(msg.sender) >= _amount, "SourceMinter: Insufficient Link balance.");
+        linkDeposits[msg.sender] = _amount;
+        LinkTokenInterface(i_link).transferFrom(msg.sender, address(this), _amount);
     }
 
     function checkBalanceForMerge(
@@ -52,9 +64,8 @@ contract SourceMinter is Withdraw {
             message
         );
 
-        if(payFeesIn == PayFeesIn.LINK) {
-            // Needs further logic
-            return false;
+        if (payFeesIn == PayFeesIn.LINK) {
+            return linkDeposits[msg.sender] >= fee;
         }
         else if (payFeesIn == PayFeesIn.Native) {
             return nativeDeposits[msg.sender] >= fee;
@@ -62,11 +73,34 @@ contract SourceMinter is Withdraw {
         return false;
     }
 
+    function getFee(
+        uint64 destinationChainSelector,
+        address receiver,
+        PayFeesIn payFeesIn
+    ) public view returns (uint256) {
+        Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
+            receiver: abi.encode(receiver),
+            data: abi.encodeWithSignature("mint(address)", msg.sender),
+            tokenAmounts: new Client.EVMTokenAmount[](0),
+            extraArgs: "",
+            feeToken: payFeesIn == PayFeesIn.LINK ? i_link : address(0)
+        });
+
+        return IRouterClient(i_router).getFee(
+            destinationChainSelector,
+            message
+        );
+    }
+
     function merge(
         uint64 destinationChainSelector,
         address receiver,
         PayFeesIn payFeesIn
     ) external {
+
+        require(astroPartsNft != address(0), "SourceMinter: AstroPartsNFT address is not set.");
+        require(checkBalanceForMerge(destinationChainSelector, receiver, payFeesIn), "SourceMinter: Insufficient token balance for merge.");
+
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: abi.encode(receiver),
             data: abi.encodeWithSignature("mint(address)", msg.sender),
@@ -94,6 +128,8 @@ contract SourceMinter is Withdraw {
                 message
             );
         }
+
+        AstroSuitPartsNFT(astroPartsNft).burnItAll(msg.sender);
 
         emit MessageSent(messageId);
     }
