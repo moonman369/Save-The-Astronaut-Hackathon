@@ -14,7 +14,7 @@ contract AstroSuitFullNFT is ERC721URIStorage, Ownable {
 
     event FullSuitMinted(address _to, uint256 _tokenId);
 
-    string constant TOKEN_URI = "https://ipfs.io/ipfs/QmYuKY45Aq87LeL1R5dhb1hqHLp6ZFbJaCP8jxqKM1MX6y/babe_ruth_1.json";
+    string constant TOKEN_URI = "https://gateway.pinata.cloud/ipfs/QmcYFpHV4tZ2xAS8bs3LXCM6KMGAKNyaotTk4SdLoy9TJr/full.json";
     uint256 internal tokenId;
 
     constructor(address _initOwner, uint256 _maxTokenSupply) Ownable(_initOwner) ERC721("AstroSuit Full", "ASF") 

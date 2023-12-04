@@ -73,7 +73,8 @@ contract SourceMinter is Withdraw {
         return false;
     }
 
-    function getFee(
+
+    function getMergeFee(
         uint64 destinationChainSelector,
         address receiver,
         PayFeesIn payFeesIn
@@ -86,11 +87,15 @@ contract SourceMinter is Withdraw {
             feeToken: payFeesIn == PayFeesIn.LINK ? i_link : address(0)
         });
 
-        return IRouterClient(i_router).getFee(
+        uint256 fee = IRouterClient(i_router).getFee(
             destinationChainSelector,
             message
         );
+        
+        return fee;
     }
+
+
 
     function merge(
         uint64 destinationChainSelector,
