@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "sepoliaPipeline": "npx hardhat --network sepolia run scripts/sepoliaDeploymentPipeline.js",
+    "mumbaiPipeline": "npx hardhat --network mumbai run scripts/mumbaiDeploymentPipeline.js"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +18,10 @@
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@openzeppelin/contracts": "^5.0.0",
     "ethers": "^6.8.1"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "hardhat": "^2.19.1",
+    "hardhat-ethers": "^1.0.1"
   }
 }
