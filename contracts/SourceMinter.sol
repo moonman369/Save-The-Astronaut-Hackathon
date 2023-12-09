@@ -4,15 +4,20 @@ pragma solidity ^0.8.19;
 import {LinkTokenInterface} from "@chainlink/contracts/src/v0.8/shared/interfaces/LinkTokenInterface.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
-import {Withdraw} from "./utils/Withdraw.sol";
+// import {Withdraw} from "./utils/Withdraw.sol";
 import {AstroSuitPartsNFT} from "./AstroSuitPartsNFT.sol";
+import {OwnerIsCreator} from "@chainlink/contracts-ccip/src/v0.8/shared/access/OwnerIsCreator.sol";
+import {IERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.0/token/ERC20/IERC20.sol";
 
 /**
  * THIS IS AN EXAMPLE CONTRACT THAT USES HARDCODED VALUES FOR CLARITY.
  * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
  * DO NOT USE THIS CODE IN PRODUCTION.
  */
-contract SourceMinter is Withdraw {
+contract SourceMinter is OwnerIsCreator {
+
+    error FailedToWithdrawEth(address owner, uint256 value);
+
     enum PayFeesIn {
         Native,
         LINK
@@ -23,6 +28,7 @@ contract SourceMinter is Withdraw {
     address astroPartsNft;
     mapping(address => uint256) private nativeDeposits;
     mapping(address => uint256) private linkDeposits;
+    mapping(address => bytes32[]) private merges;
 
     event MessageSent(bytes32 messageId);
 
@@ -37,12 +43,12 @@ contract SourceMinter is Withdraw {
     }
 
     receive() external payable {
-        nativeDeposits[msg.sender] = msg.value;
+        nativeDeposits[msg.sender] += msg.value;
     }
 
     function receiveLink(uint256 _amount) external {
         require(LinkTokenInterface(i_link).balanceOf(msg.sender) >= _amount, "SourceMinter: Insufficient Link balance.");
-        linkDeposits[msg.sender] = _amount;
+        linkDeposits[msg.sender] += _amount;
         LinkTokenInterface(i_link).transferFrom(msg.sender, address(this), _amount);
     }
 
@@ -105,6 +111,10 @@ contract SourceMinter is Withdraw {
 
         require(astroPartsNft != address(0), "SourceMinter: AstroPartsNFT address is not set.");
         require(checkBalanceForMerge(destinationChainSelector, receiver, payFeesIn), "SourceMinter: Insufficient token balance for merge.");
+        require(AstroSuitPartsNFT(astroPartsNft).balanceOf(msg.sender, 0) > 0, "SourceMinter: Not enough Gloves to perform merge");
+        require(AstroSuitPartsNFT(astroPartsNft).balanceOf(msg.sender, 1) > 0, "SourceMinter: Not enough Helmet to perform merge");
+        require(AstroSuitPartsNFT(astroPartsNft).balanceOf(msg.sender, 2) > 0, "SourceMinter: Not enough Suit to perform merge");
+        require(AstroSuitPartsNFT(astroPartsNft).balanceOf(msg.sender, 3) > 0, "SourceMinter: Not enough Boots to perform merge");
 
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
             receiver: abi.encode(receiver),
@@ -123,19 +133,51 @@ contract SourceMinter is Withdraw {
 
         if (payFeesIn == PayFeesIn.LINK) {
             // LinkTokenInterface(i_link).approve(i_router, fee);
+            linkDeposits[msg.sender] -= fee;
             messageId = IRouterClient(i_router).ccipSend(
                 destinationChainSelector,
                 message
             );
         } else {
+            nativeDeposits[msg.sender] -= fee;
             messageId = IRouterClient(i_router).ccipSend{value: fee}(
                 destinationChainSelector,
                 message
             );
         }
 
+        merges[msg.sender].push(messageId);
+
         AstroSuitPartsNFT(astroPartsNft).burnItAll(msg.sender);
 
         emit MessageSent(messageId);
     }
+
+    function withdrawNative() public {
+        require(nativeDeposits[msg.sender] > 0, "SourceMinter: No Tokens to withdraw");
+        uint256 amount = nativeDeposits[msg.sender];
+        nativeDeposits[msg.sender] = 0;
+        (bool sent, ) = msg.sender.call{value: amount}("");
+        if(!sent) revert FailedToWithdrawEth(msg.sender, amount);
+    }
+
+    function withdrawLink() public {
+        require(linkDeposits[msg.sender] > 0, "SourceMinter: No Tokens to withdraw");
+        uint256 amount = linkDeposits[msg.sender];
+        linkDeposits[msg.sender] = 0;
+        LinkTokenInterface(i_link).transfer(msg.sender, amount);
+    }
+
+    function getNativeDeposits(address _user) public view returns (uint256) {
+        return nativeDeposits[_user];
+    }
+
+    function getLinkDeposits(address _user) public view returns (uint256) {
+        return linkDeposits[_user];
+    }
+
+    function getMerges(address _user) public view returns (bytes32[] memory) {
+        return merges[_user];
+    }
+
 }

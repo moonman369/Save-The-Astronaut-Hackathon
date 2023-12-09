@@ -8,7 +8,7 @@ const {
 const { ctorArgs } = require("./constructorArgs");
 
 const mumbaiDeploymentPipeline = async () => {
-  const [deployer1, deployer2] = await ethers.getSigners();
+  const [deployer2] = await ethers.getSigners();
 
   const { maxTokenSupply } = ctorArgs.AstroSuitFullNFT;
   const astroSuitFullNFT = await deployAstroSuitFullNFT(
